@@ -1,15 +1,29 @@
+import { gql, useQuery } from '@apollo/client';
+import { Button } from '@mui/material';
+import clsx from 'clsx';
 import type { NextPage, NextPageContext } from 'next';
 import { useSession, signIn, signOut, getSession } from 'next-auth/react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useEffect } from 'react';
+import UserModel from '../model/user.model';
 import { clearUser, setUser } from '../store/app/user.slice';
 import { useAppDispatch, useAppSelector } from '../store/hook';
 import styles from '../styles/Home.module.css';
 
+const GET_USERS = gql`
+    query GetUsers {
+        users {
+            id
+            email
+        }
+    }
+`;
+
 const Home: NextPage<any> = () => {
     const dispatch = useAppDispatch();
     const user = useAppSelector(state => state.app.user);
+    const { loading, error, data } = useQuery(GET_USERS);
 
     const { data: session } = useSession();
 
@@ -21,6 +35,8 @@ const Home: NextPage<any> = () => {
             }
         }
     }, [session, dispatch, user]);
+
+    console.log(data);
 
     return (
         <div className={styles.container}>
@@ -37,8 +53,16 @@ const Home: NextPage<any> = () => {
                 <h1 className={styles.title}>
                     Welcome {!!session ? user.email : 'Guest'}!
                 </h1>
+                <ul>
+                    {data &&
+                        data.users.map((u: UserModel) => (
+                            <li key={u.id}>{u.email}</li>
+                        ))}
+                </ul>
                 {!session ? (
-                    <button
+                    <Button
+                        variant="contained"
+                        color="primary"
                         onClick={async () => {
                             const response = await signIn('credentials', {
                                 redirect: false,
@@ -49,9 +73,11 @@ const Home: NextPage<any> = () => {
                         }}
                     >
                         Login
-                    </button>
+                    </Button>
                 ) : (
-                    <button
+                    <Button
+                        variant="contained"
+                        color="error"
                         onClick={async () => {
                             await signOut({
                                 redirect: false,
@@ -60,7 +86,7 @@ const Home: NextPage<any> = () => {
                         }}
                     >
                         Logout
-                    </button>
+                    </Button>
                 )}
 
                 <p className={styles.description}>
@@ -69,7 +95,10 @@ const Home: NextPage<any> = () => {
                 </p>
 
                 <div className={styles.grid}>
-                    <a href="https://nextjs.org/docs" className={styles.card}>
+                    <a
+                        href="https://nextjs.org/docs"
+                        className={clsx(styles.card, 'bg-lime-500')}
+                    >
                         <h2>Documentation &rarr;</h2>
                         <p>
                             Find in-depth information about Next.js features and
@@ -98,7 +127,7 @@ const Home: NextPage<any> = () => {
 
                     <a
                         href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-                        className={styles.card}
+                        className={clsx(styles.card, 'bg-lime-300')}
                     >
                         <h2>Deploy &rarr;</h2>
                         <p>

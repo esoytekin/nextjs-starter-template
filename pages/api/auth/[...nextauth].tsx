@@ -1,6 +1,23 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { query } from '.keystone/api';
+import { gql } from '@apollo/client';
+import client from '../../../apollo-client';
+
+const AUTH_USER = gql`
+    mutation Auth($email: String!, $password: String!) {
+        authenticateUserWithPassword(email: $email, password: $password) {
+            ... on UserAuthenticationWithPasswordSuccess {
+                item {
+                    id
+                }
+            }
+            ... on UserAuthenticationWithPasswordFailure {
+                message
+            }
+        }
+    }
+`;
 
 export default NextAuth({
     session: {
@@ -16,21 +33,29 @@ export default NextAuth({
                 password: { type: 'password' },
             },
             async authorize(credentials) {
-                const u = await query.User.findOne({
-                    where: {
-                        email: credentials?.email,
-                    },
-                    query: 'id email password',
+                const {
+                    data: { authenticateUserWithPassword },
+                } = await client.mutate({
+                    mutation: AUTH_USER,
+                    variables: credentials,
                 });
 
-                if (!u) {
-                    throw new Error('User not found');
+                if (authenticateUserWithPassword.message) {
+                    throw new Error(authenticateUserWithPassword.message);
                 }
 
-                if (credentials?.password === u.password) {
-                    return u;
-                }
-                throw new Error('Password not match!');
+                const {
+                    item: { id },
+                } = authenticateUserWithPassword;
+
+                const u = await query.User.findOne({
+                    where: {
+                        id,
+                    },
+                    query: 'id email',
+                });
+
+                return u;
             },
         }),
     ],

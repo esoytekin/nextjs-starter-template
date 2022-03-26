@@ -5,6 +5,8 @@ Starter template for NextJS projects
 -   NEXT JS
 -   Typescript
 -   Next Auth
+-   KeystoneJS
+-   GraphQL
 -   Next Connect
 -   ReduxJS/Toolkit
 -   MUI
